@@ -456,51 +456,43 @@ namespace Ravlyk.SAE5.WinForms.UserControls
 
 		void SaveExcel(string fileName)
 		{
-			Cursor = Cursors.WaitCursor;
-			try
-			{
-				using (var form = new Form
-				{
-					Text = Resources.FileSavingToExcel,
-					Size = new System.Drawing.Size(200, 130),
-					TopMost = true,
-					FormBorderStyle = FormBorderStyle.FixedDialog,
-					ShowIcon = false,
-					ControlBox = false
-				})
-				{
-					var progressLabel = new Label { Location = new Point(32, 24), Text = Resources.FileSavingToExcelLabel, AutoSize = true };
-					form.Controls.Add(progressLabel);
-					form.Show();
-					form.Invalidate();
-					form.Update();
-
-					ExcelExporter.ExportToExcel(SchemeImage, fileName, PatternGridController.GridPainter, paletteUserControl.Controller?.OrderedColors ?? SchemeImage.Palette.OrderByDarknes().Cast<CodedColor>().ToList());
-				}
-
-				if (File.Exists(fileName))
-				{
-					Process.Start(fileName);
-				}
-			}
-			catch (Exception ex)
-			{
-				MessageBox.Show(Resources.ErrorCannotSaveFile + Environment.NewLine + ex.Message);
-			}
-			finally
-			{
-				Cursor = DefaultCursor;
-			}
-		}
+            SaveWithProgress(
+				Resources.FileSavingToExcel,
+				Resources.FileSavingToExcelLabel,
+				fileName,
+				() => ExcelExporter.ExportToExcel(
+					SchemeImage,
+					fileName,
+					PatternGridController.GridPainter,
+					paletteUserControl.Controller?.OrderedColors
+						?? SchemeImage.Palette.OrderByDarknes().Cast<CodedColor>().ToList()
+				)
+			);
+        }
 
         void SaveOxs(string fileName)
+        {
+            SaveWithProgress(
+				Resources.FileSavingToOxs,
+				Resources.FileSavingToOxsLabel,
+				fileName,
+				() => OxsExporter.ExportToOxs(
+					SchemeImage,
+					fileName,
+					paletteUserControl.Controller?.OrderedColors
+						?? SchemeImage.Palette.OrderByDarknes().Cast<CodedColor>().ToList()
+				)
+			);
+        }
+
+        void SaveWithProgress(string formText, string labelText, string fileName, Action exportAction)
         {
             Cursor = Cursors.WaitCursor;
             try
             {
                 using (var form = new Form
                 {
-                    Text = Resources.FileSavingToOxs,
+                    Text = formText,
                     Size = new System.Drawing.Size(200, 130),
                     TopMost = true,
                     FormBorderStyle = FormBorderStyle.FixedDialog,
@@ -508,19 +500,23 @@ namespace Ravlyk.SAE5.WinForms.UserControls
                     ControlBox = false
                 })
                 {
-                    var progressLabel = new Label { Location = new Point(32, 24), Text = Resources.FileSavingToOxsLabel, AutoSize = true };
+                    var progressLabel = new Label
+                    {
+                        Location = new Point(32, 24),
+                        Text = labelText,
+                        AutoSize = true
+                    };
+
                     form.Controls.Add(progressLabel);
                     form.Show();
                     form.Invalidate();
                     form.Update();
 
-                    OxsExporter.ExportToOxs(SchemeImage, fileName, paletteUserControl.Controller?.OrderedColors ?? SchemeImage.Palette.OrderByDarknes().Cast<CodedColor>().ToList());
+                    exportAction();
                 }
 
                 if (File.Exists(fileName))
-                {
                     Process.Start(fileName);
-                }
             }
             catch (Exception ex)
             {
